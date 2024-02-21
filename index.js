@@ -4,15 +4,9 @@ import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/
 // Firebase configuration
 const firebaseConfig = {
     databaseURL: "https://kudos-delight-f5561-default-rtdb.firebaseio.com/"
-};
-
-// Initialize Firebase app with the provided configuration
+}
 const app = initializeApp(firebaseConfig);
-
-// Get a reference to the Firebase Realtime Database
 const database = getDatabase(app);
-
-// Reference to the "compliments" node in the database
 const complimentsRef = ref(database, "compliments");
 
 // Select page elements
@@ -20,13 +14,21 @@ const generateButton = document.getElementById('generateButton');
 const complimentDisplay = document.getElementById('compliment-display');
 const complimentForm = document.getElementById('complimentForm');
 const complimentInput = document.getElementById('complimentInput');
-const toggleFormButton = document.getElementById('toggleFormButton'); // Assuming you have this element in your HTML
+const successMessage = document.getElementById('successMessage');
 
 // Function to show/hide the submission form
 toggleFormButton.addEventListener('click', () => {
     complimentForm.classList.toggle('hidden');
     complimentForm.classList.contains('hidden') ? toggleFormButton.textContent = 'Add Kudos' : toggleFormButton.textContent = 'Hide Form';
 });
+
+// Function to show the success message for 3 seconds
+function showSuccessMessage() {
+    successMessage.style.display = 'block'; // Display the success message
+    setTimeout(() => {
+        successMessage.style.display = 'none'; // Hide the success message after 3 seconds
+    }, 3000);
+}
 
 // Function to handle form submission
 complimentForm.addEventListener('submit', (e) => {
@@ -41,6 +43,7 @@ complimentForm.addEventListener('submit', (e) => {
                 complimentInput.value = ''; // Clear the input field
                 complimentForm.classList.add('hidden'); // Hide the form after submission
                 toggleFormButton.textContent = 'Add Kudos'; // Update the button text
+                showSuccessMessage(); // Show the success message
             })
             .catch((error) => {
                 console.error('Error adding compliment:', error);
@@ -48,24 +51,27 @@ complimentForm.addEventListener('submit', (e) => {
     }
 });
 
-// Add event listener to the "Generate" button
-generateButton.addEventListener('click', () => {
-    // Retrieve compliments from the Firebase database
-    get(complimentsRef).then((snapshot) => {
-        // Get an array of compliments from the snapshot
-        const compliments = [];
-        snapshot.forEach((childSnapshot) => {
-            const compliment = childSnapshot.val();
-            compliments.push(compliment);
+// Function to fetch compliments data from Firebase
+function fetchCompliments() {
+    // Use the `get` function to retrieve data from the Firebase database
+    get(complimentsRef)
+        .then((snapshot) => {
+            if (snapshot.exists()) {
+                const complimentsData = snapshot.val(); // Get the data as an object
+                const complimentsArray = Object.values(complimentsData); // Convert the object to an array
+
+                // Display a random compliment from the array
+                const randomIndex = Math.floor(Math.random() * complimentsArray.length);
+                const randomCompliment = complimentsArray[randomIndex];
+                complimentDisplay.textContent = randomCompliment;
+            } else {
+                complimentDisplay.textContent = "No kudos available."; // Handle case where no compliments exist
+            }
+        })
+        .catch((error) => {
+            console.error('Error fetching compliments:', error);
         });
+}
 
-        // Select a random compliment from the array
-        const randomIndex = Math.floor(Math.random() * compliments.length);
-        const randomCompliment = compliments[randomIndex];
-
-        // Display the randomly selected compliment to the user
-        complimentDisplay.textContent = randomCompliment;
-    }).catch((error) => {
-        console.error('Error getting compliments:', error);
-    });
-});
+// Add a click event listener to the generate button
+generateButton.addEventListener('click', fetchCompliments);
